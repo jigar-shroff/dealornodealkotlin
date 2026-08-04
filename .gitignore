@@ -1,11 +1,13 @@
 # Compiled class file
 *.class
+*.kotlin_module
 
 # Log file
 *.log
 
 #IntelliJ files
 .idea
+out/
 
 # BlueJ files
 *.ctxt
