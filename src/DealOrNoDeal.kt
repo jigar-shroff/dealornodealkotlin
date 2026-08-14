@@ -5,21 +5,44 @@ import kotlin.system.exitProcess
 
 //import kotlin.io.*
 
+/**
+ * A class that creates a game of Deal or No Deal, as per the rules of the existing game show
+ */
 class DealOrNoDeal {
 
-    private var cases: Array<Case> = Array<Case>(14) { _ -> Case(false, 0.0) }
+    /**
+     * The [Cases][Case] that are used in the game
+     *
+     * Each `Case` stores its value and its selection status
+     */
+    internal lateinit var cases: Array<Case>
+
+    /**
+     * The index of the case that is selected
+     *
+     * In other words `cases[selectedCase].selected = SelectionStatus.SAVED`
+     */
     private var selectedCase: Int = -1
 
+    //The currency formatter that formats based on Locale
     private val currencyFormat: NumberFormat = NumberFormat.getCurrencyInstance()
+    //The amount of turns until the banker calls
+    private var bankerCalls:Int = 6
+
+    //The amount the banker gave in their last deal
+    private var dealAmount:Double = 0.0
+
+
 
 
     /**
-     * Constructor for the game
-     * @param sc2 The case that has been selected (off by one)
+     * An initialization block which creates [cases] by randomizing the amounts in each case
      */
-    constructor(scOffByOne: Int) {
+    init {
+        // logic that executes whenever a constructor gets called
+        // constructor assigns, init block executes
 
-        val sc: Int = scOffByOne - 1
+
 
         var numbers: ArrayList<Int> = ArrayList<Int>()
 
@@ -29,74 +52,98 @@ class DealOrNoDeal {
 
         var init: Array<Double> = arrayOf<Double>(
             0.01, 0.50, 1.0, 5.0,
-            100.0, 500.0, 1000.0, 10000.0, 50000.0, 100000.0, 250000.0, 500000.0, 750000.0, 1000000.0
+            100.0, 500.0, 1000.0, 10000.0, 50000.0, 100000.0,
+            250000.0, 500000.0, 750000.0,
+            1000000.0
         )
 
-        for (i in 0 until init.size) {
+        var casesList:MutableList<Case> = mutableListOf()
+
+        for (i in init.indices) {
             var randomIndex: Int = (Math.random() * numbers.size).toInt()
             var caseNum: Int = numbers.removeAt(randomIndex)
 
-            cases[caseNum] = Case(false, init[i])
+            casesList.add(Case(caseNum.toUInt() + 1u, init[i], SelectionStatus.NOT_SELECTED))
 
+            //cases[caseNum] = Case(caseNum.toUInt(), init[i], SelectionStatus.NOT_SELECTED)
 
         }
 
-        selectedCase = sc
-
-
+        casesList.sortBy{c -> c.id}
+        cases = casesList.toTypedArray()
     }
 
     /**
-     * Assume case is off by one
-     * @param case The number of the case being selected, off by one
-     * @return none
+     * Selects the case whose id is given by parameter
+     * @param selectedCase The number of the case being selected
+     * @return The next [Event][Events] that should occur
      */
-    fun selectCase(case: Int) {
+    fun selectCase(selectedCase: Int):Events {
 
-        val selectedCase = case - 1;
+
+//        if(enoughCasesSelected()){
+//            return Events(EventType.SWAP, "There are 2 cases left, do you want to swap?")
+//        }
 
         try {
 
-
-            if (cases[selectedCase].isSelected || selectedCase == this.selectedCase) {
-                if (!enoughCasesSelected())
-                    throw IllegalStateException("This case has already been selected!")
-                else return
+            if (cases[selectedCase].isSelected() /*|| selectedCase == this.selectedCase*/) {
+                return Events(EventType.BAD_INPUT, "Case has been selected already!")
             }
 
-            cases[selectedCase].isSelected = true
-        } catch (e: ArrayIndexOutOfBoundsException) {
+            cases[selectedCase].selected = SelectionStatus.SELECTED
+            bankerCalls--
+        }
+        catch (e: ArrayIndexOutOfBoundsException) {
 
-            throw IllegalStateException("This case is invalid!")
+            return Events(EventType.BAD_INPUT, "Case index out of range")
 
         }
 
-        println("You have selected case number: $case")
-        print("The value inside the case was...")
+        return if(bankerCalls == 0) {
+//            var BANKER_CALLING:Events = Events(EventType.BANKER, "The banker is calling and is offering ${bankerDeal()}")
+//            return BANKER_CALLING
+            val bankerEvent:Events = bankerLogic()
+            val modifiedEvent: Events = Events(bankerEvent.event, "That case had ${currencyFormat.format(cases[selectedCase].amount)}." + System.lineSeparator() + bankerEvent.msg)
+            modifiedEvent
+        }
+        else if(enoughCasesSelected()){
+            Events(EventType.SWAP, "That case had ${currencyFormat.format(cases[selectedCase].amount)}.\nThere are 2 cases left, do you want to swap?")
+        }
+        else if(bankerCalls > cases.filter{c:Case -> !c.isSelected()}.size-1){
+            Events(EventType.CASE_SELECTION, "That case had ${currencyFormat.format(cases[selectedCase].amount)}.\nSelect a case:")
+        }
+        else{
+            Events(EventType.CASE_SELECTION, "That case had ${currencyFormat.format(cases[selectedCase].amount)}.\nSelect a case (The banker is calling in: $bankerCalls turns):")
+        }
 
-        Thread.sleep(2000)
 
-        println("${currencyFormat.format(cases[selectedCase].amount)}")
+        //println("You have selected case number: $case")
+        //print("The value inside the case was...")
 
-        var caseValues: Array<Double> = cases.map() { case ->
+        //Thread.sleep(2000)
+
+        //println("${currencyFormat.format(cases[selectedCase].amount)}")
+
+       /* var caseValues: Array<Double> = cases.map() { case ->
             case.amount
-        }.sorted().toTypedArray()
-        var median = caseValues[caseValues.size / 2]
+        }.sorted().toTypedArray()*/
+        //var median = caseValues[caseValues.size / 2]
 
-        if (cases[selectedCase].amount < median) {
+        /*if (cases[selectedCase].amount < median) {
 
             println("Great!")
 
 
         } else {
             println("Too bad!")
-        }
+        }*/
 
 
-        val filtered: List<Case> = cases.filter { case -> !case.isSelected }.sortedBy { case -> case.amount }
+        //val filtered: List<Case> = cases.filter { case -> !case.isSelected() }.sortedBy { case -> case.amount }
 
-        print("Values remaining -> ")
-        for ((index, value) in filtered.withIndex()) {
+       /* print("Values remaining -> ")*/
+       /* for ((index, value) in filtered.withIndex()) {
 
             if (index == filtered.size - 1) {
                 println("${currencyFormat.format(value.amount)}")
@@ -104,22 +151,145 @@ class DealOrNoDeal {
                 print("${currencyFormat.format(value.amount)}, ")
             }
 
-        }
+        }*/
 
 //        val filtered2:List<Case> = filtered.filterIndexed { index, case -> index != selectedCase }.sortedBy{case -> case.}
 
-        print("Cases to select -> ")
+       /* print("Cases to select -> ")
 
         for (r: Int in 0 until cases.size) {
 
-            if (!cases[r].isSelected && r != this.selectedCase) {
+            if (!cases[r].isSelected() && r != this.selectedCase) {
                 print("${r + 1} ")
             }
 
         }
 
-        println()
+        println()*/
 
+    }
+
+    /**
+     * Handles the logic of sending [Events] based on [EventTypes][EventType] that are being sent in, along with the player's [response]
+     *
+     * @param response The player's response
+     * @param event The [EventType] that is occuring
+     * @return The next [Event][Events] that is to occur
+     * @throws IllegalStateException If an invalid [EventType] is sent in
+     */
+    @Throws(IllegalStateException::class)
+    internal fun logic(response:String, event:EventType):Events{
+
+
+
+        when(event){
+
+
+            EventType.CASE_SELECTION ->{
+
+                //validate
+                var case:Int = 0
+                try {
+                    case = response.toInt()
+                }
+                catch(e: NumberFormatException){
+                    return Events(EventType.BAD_INPUT, "Input a number!")
+                }
+
+
+                if(--case !in 0..14){
+                    return Events(EventType.BAD_INPUT, "Input is out of range.")
+                }
+
+                return selectCase(case)
+
+
+            }
+
+            EventType.CASE_SAVING -> {
+
+                var case:Int = 0
+
+                try{
+                    case = response.toInt()
+                }
+                catch(e:NumberFormatException){
+                    return Events(EventType.BAD_INPUT, "Input a number!")
+                }
+
+                if(--case !in 0..14) return Events(EventType.BAD_INPUT, "Input is out of range")
+
+                selectedCase = case
+                cases[selectedCase].selected = SelectionStatus.SAVED
+
+                return Events(EventType.CASE_SELECTION, "Select a case:")
+
+            }
+            EventType.BANKER -> {
+
+                val yesNo:Char = response.lowercase()[0]
+
+                if(yesNo != 'y' && yesNo != 'n')
+                    return Events(EventType.BAD_INPUT, "Input 'y' or 'n'." + "(The banker has offered ${currencyFormat.format(dealAmount)}.")
+
+                if(yesNo == 'y'){
+
+                    var msg:String = "You accepted the banker's deal of ${currencyFormat.format(dealAmount)}" +
+                            "\n Inside of your case there was ${currencyFormat.format(cases[selectedCase].amount)}"
+
+                    if(dealAmount > cases[selectedCase].amount){
+                        msg += "\nGood job!"
+                    }
+                    else{
+                        msg += "\nToo bad!"
+                    }
+
+                    return Events(EventType.GAME_OVER, msg)
+
+
+                }
+                else{
+                    bankerCalls = (Math.random()*4).toInt()+1
+                    return if(bankerCalls > cases.filter{c:Case -> !c.isSelected()}.size){
+                        if(!enoughCasesSelected())
+                            Events(EventType.CASE_SELECTION, "Select a case:")
+                        else
+                            Events(EventType.SWAP, "There are 2 cases left, do you want to swap?")
+                    }
+                    else{
+                        Events(EventType.CASE_SELECTION, "Select a case (The banker is calling in $bankerCalls turns):")
+                    }
+                }
+
+
+
+            }
+            EventType.SWAP ->{
+
+                when(response.lowercase()){
+                    "y" -> swap()
+                    "n" -> {}
+                    else -> return Events(EventType.BAD_INPUT, "Input 'y' or 'n'.")
+                }
+
+                val otherAmount:Double = findOtherCase()
+                var msg:String = "The other case had ${currencyFormat.format(otherAmount)} in it! \n" +
+                        "Your case had ${currencyFormat.format(cases[selectedCase].amount)}."
+                if(cases[selectedCase].amount > otherAmount){
+                    msg += "\n Good work!"
+                }
+                else{
+                    msg += "\n Yikes!"
+                }
+
+                return Events(EventType.GAME_OVER, msg)
+
+
+            }
+         else -> {
+             throw IllegalStateException("Should not be able to pass in $event")
+         }
+        }
     }
 
     /**
@@ -135,7 +305,9 @@ class DealOrNoDeal {
 
         for (r in 0..cases.size - 1) {
 
-            if (cases[r].isSelected == false && r != selectedCase) {
+            if (/*cases[r].isSelected() == false && r != selectedCase*/
+                !cases[r].isSelected()
+            ) {
 
                 caseToSwapWith = r
                 break
@@ -146,10 +318,15 @@ class DealOrNoDeal {
 
         if (caseToSwapWith == -1) {
             return -1.0
-        } else {
+        }
+        else {
 
             val temp: Int = selectedCase
+
+            cases[selectedCase].selected = cases[caseToSwapWith].selected
+
             selectedCase = caseToSwapWith
+            cases[caseToSwapWith].selected = SelectionStatus.SAVED
 
             return cases[temp].amount
         }
@@ -161,62 +338,56 @@ class DealOrNoDeal {
      * Deal that the banker makes
      * @return the deal
      */
-    private fun bankerDeal(): Double {
+    private fun bankerLogic(): Events {
 
         var rand: Random = Random()
-        var highLowMiddle: Int = (Math.random() * 3).toInt() - 2
-        var randValue: Double = rand.nextDouble()
+        //var highLowMiddle: Int = (Math.random() * 3).toInt() - 2
+        val randValue: Double = rand.nextDouble()
 
 
-        var average: Double = 0.0
+        val average: Double = cases.filter {
+            c: Case -> !c.isSelected()
+        }.sumOf{
+            c:Case -> c.amount
+        } / cases.filter{ c:Case -> !c.isSelected()}.size.floorDiv(1)
 
-        for (r in 0..cases.size - 1) {
-            if (cases[r].isSelected == false) {
+        dealAmount = when (randValue) {
+    //
+    //            -1 -> {
+    //
+    //                deal = Math.random()*median
+    //
+    //
+    //            }
+            in 0.0..0.4 -> {
 
-                average += cases[r].amount
-
-
-            }
-        }
-
-        average /= cases.size
-
-
-        var deal: Double
-
-        when (randValue) {
-//
-//            -1 -> {
-//
-//                deal = Math.random()*median
-//
-//
-//            }
-            in 0.0..0.6 -> {
-
-                return average
+                average
 
             }
 
-            in 0.6..0.9 -> {
+            in 0.4..0.9 -> {
                 val plusMinus: Boolean = rand.nextBoolean()
 
-                average = if (plusMinus) 0.77 * average else 1.32 * average
-                return average
+                if (plusMinus) 0.62 * average else 1.15 * average
+
             }
 
-            in 0.9..1.0 -> {
+            in 0.9..0.950 -> {
                 val plusMinus: Boolean = rand.nextBoolean()
 
-                average = if (plusMinus) 0.17 * average else 1.47 * average
+                if(plusMinus) 0.17 * average else 2 * average
 
-                return average
+
             }
 
-            else -> return 5 * average
+            else -> 5 * average
 
         }
 
+
+        return Events(EventType.BANKER, "The banker has called!" +
+                "\nThey offered ${currencyFormat.format(dealAmount)}" +
+                "\nAccept? (y/n)")
 
     }
     /*
@@ -228,7 +399,7 @@ class DealOrNoDeal {
         var unselectedCases: Int = 0
 
         for (case: Case in cases) {
-            if (!(case.isSelected)) {
+            if (case.selected != SelectionStatus.SELECTED) {
 //                println("[!]" + case.amount + " | " + case.isSelected)
                 unselectedCases++
             }
@@ -236,10 +407,11 @@ class DealOrNoDeal {
 
 //        print(unselectedCases)
 
-        if (unselectedCases < 2) throw IllegalStateException()
+        if (unselectedCases < 2) throw IllegalStateException("Too few cases boy!")
         return unselectedCases == 2
 
     }
+
 
     /*
      * If there are only two cases remaining, this function will find the case that IS NOT {@code selectedCase}
@@ -251,23 +423,22 @@ class DealOrNoDeal {
             return -1.0
         }
 
-        for (r: Int in 0..cases.size - 1) {
+        return cases.filter { c: Case ->
+            c.selected == SelectionStatus.NOT_SELECTED
+        }[0].amount
 
-            if (!cases[r].isSelected && r != selectedCase) {
-
-                return cases[r].amount
-
-            }
-
-        }
-
-        return -1.0
-
+//        for (r: Int in 0..cases.size - 1) {
+//
+//            if (cases[r].selected != SelectionStatus.SELECTED) {
+//
+//                return cases[r].amount
+//
+//            }
+//
+//        }
 
     }
-
-
-    fun driver(): Unit {
+   /* fun driver(): Unit {
 
 //        var game:DealOrNoDeal = DealOrNoDeal(sc)
 
@@ -381,7 +552,7 @@ class DealOrNoDeal {
         }
 
 
-    }
+    }*/
 
     override fun toString(): String {
         return "DealOrNoDeal(selectedCase=$selectedCase, cases=${cases.contentToString()})"
@@ -415,8 +586,9 @@ class DealOrNoDeal {
 }
 
 
-data class Case(var isSelected: Boolean, val amount: Double)
+//data class Case(var isSelected: Boolean, val amount: Double)
 
+/*
 fun main(args: Array<String>): Unit {
 
     var valid: Boolean = true
@@ -438,4 +610,4 @@ fun main(args: Array<String>): Unit {
 
     obj.driver()
 
-}
+}*/
