@@ -1,2 +1,2 @@
 mvn clean package
-java -jar target/DONDApp-1.0.0.jar
+java -jar target/DONDApp-1.0.1.jar
