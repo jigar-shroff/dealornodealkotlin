@@ -3,7 +3,7 @@
     <groupId> dev.js </groupId>
     <artifactId> DONDApp </artifactId>
     <version>
-        1.0.0
+        1.0.1
     </version>
 
 <properties>

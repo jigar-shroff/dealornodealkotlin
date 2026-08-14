@@ -27,7 +27,7 @@ class DealOrNoDeal {
     //The currency formatter that formats based on Locale
     private val currencyFormat: NumberFormat = NumberFormat.getCurrencyInstance()
     //The amount of turns until the banker calls
-    private var bankerCalls:Int = 8
+    private var bankerCalls:Int = 6
 
     //The amount the banker gave in their last deal
     private var dealAmount:Double = 0.0
@@ -104,7 +104,7 @@ class DealOrNoDeal {
 //            var BANKER_CALLING:Events = Events(EventType.BANKER, "The banker is calling and is offering ${bankerDeal()}")
 //            return BANKER_CALLING
             val bankerEvent:Events = bankerLogic()
-            val modifiedEvent: Events = Events(bankerEvent.event, "That case had ${currencyFormat.format(cases[selectedCase].amount)}" + System.lineSeparator() + bankerEvent.msg)
+            val modifiedEvent: Events = Events(bankerEvent.event, "That case had ${currencyFormat.format(cases[selectedCase].amount)}." + System.lineSeparator() + bankerEvent.msg)
             modifiedEvent
         }
         else if(enoughCasesSelected()){
@@ -230,7 +230,7 @@ class DealOrNoDeal {
                 val yesNo:Char = response.lowercase()[0]
 
                 if(yesNo != 'y' && yesNo != 'n')
-                    return Events(EventType.BAD_INPUT, "Input 'y' or 'n'.")
+                    return Events(EventType.BAD_INPUT, "Input 'y' or 'n'." + "(The banker has offered ${currencyFormat.format(dealAmount)}.")
 
                 if(yesNo == 'y'){
 
@@ -251,7 +251,10 @@ class DealOrNoDeal {
                 else{
                     bankerCalls = (Math.random()*4).toInt()+1
                     return if(bankerCalls > cases.filter{c:Case -> !c.isSelected()}.size){
-                         Events(EventType.CASE_SELECTION, "Select a case:")
+                        if(!enoughCasesSelected())
+                            Events(EventType.CASE_SELECTION, "Select a case:")
+                        else
+                            Events(EventType.SWAP, "There are 2 cases left, do you want to swap?")
                     }
                     else{
                         Events(EventType.CASE_SELECTION, "Select a case (The banker is calling in $bankerCalls turns):")
@@ -271,7 +274,7 @@ class DealOrNoDeal {
 
                 val otherAmount:Double = findOtherCase()
                 var msg:String = "The other case had ${currencyFormat.format(otherAmount)} in it! \n" +
-                        "Your case had ${currencyFormat.format(cases[selectedCase].amount)}"
+                        "Your case had ${currencyFormat.format(cases[selectedCase].amount)}."
                 if(cases[selectedCase].amount > otherAmount){
                     msg += "\n Good work!"
                 }
@@ -346,7 +349,7 @@ class DealOrNoDeal {
             c: Case -> !c.isSelected()
         }.sumOf{
             c:Case -> c.amount
-        } / cases.filter{ c:Case -> !c.isSelected()}.size
+        } / cases.filter{ c:Case -> !c.isSelected()}.size.floorDiv(1)
 
         dealAmount = when (randValue) {
     //
@@ -404,7 +407,7 @@ class DealOrNoDeal {
 
 //        print(unselectedCases)
 
-        if (unselectedCases < 2) throw IllegalStateException()
+        if (unselectedCases < 2) throw IllegalStateException("Too few cases boy!")
         return unselectedCases == 2
 
     }

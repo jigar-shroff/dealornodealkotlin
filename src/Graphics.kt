@@ -39,6 +39,16 @@ class Graphics : ToolkitApp() {
 
     private val currencyFormat: NumberFormat = NumberFormat.getCurrencyInstance()
 
+    private val logo:String = " _______    ______   __    __  _______   __    __  ________ \n" +
+            "/       \\  /      \\ /  \\  /  |/       \\ /  |  /  |/        |\n" +
+            "\$\$\$\$\$\$\$  |/\$\$\$\$\$\$  |\$\$  \\ \$\$ |\$\$\$\$\$\$\$  |\$\$ | /\$\$/ \$\$\$\$\$\$\$\$/ \n" +
+            "\$\$ |  \$\$ |\$\$ |  \$\$ |\$\$\$  \\\$\$ |\$\$ |  \$\$ |\$\$ |/\$\$/     \$\$ |   \n" +
+            "\$\$ |  \$\$ |\$\$ |  \$\$ |\$\$\$\$  \$\$ |\$\$ |  \$\$ |\$\$  \$\$<      \$\$ |   \n" +
+            "\$\$ |  \$\$ |\$\$ |  \$\$ |\$\$ \$\$ \$\$ |\$\$ |  \$\$ |\$\$\$\$\$  \\     \$\$ |   \n" +
+            "\$\$ |__\$\$ |\$\$ \\__\$\$ |\$\$ |\$\$\$\$ |\$\$ |__\$\$ |\$\$ |\$\$  \\    \$\$ |   \n" +
+            "\$\$    \$\$/ \$\$    \$\$/ \$\$ | \$\$\$ |\$\$    \$\$/ \$\$ | \$\$  |   \$\$ |   \n" +
+            "\$\$\$\$\$\$\$/   \$\$\$\$\$\$/  \$\$/   \$\$/ \$\$\$\$\$\$\$/  \$\$/   \$\$/    \$\$/   "
+
 
     /**
      * Renders the game
@@ -71,7 +81,7 @@ class Graphics : ToolkitApp() {
 
         val caseIds: List<TextElement> = game.cases.sortedBy{case -> case.id}.map{
             case -> when (case.selected) {
-                SelectionStatus.SAVED -> text(case.id).fg(Color.Rgb(87, 87, 0)).fill().alignment(Alignment.CENTER)
+                SelectionStatus.SAVED -> text(case.id).fg(Color.hex("#daa520")).fill().alignment(Alignment.CENTER)
                 SelectionStatus.NOT_SELECTED -> text(case.id).white().fill().alignment(Alignment.CENTER)
                 SelectionStatus.SELECTED -> text(case.id).fg(Color.hex("#3d3d3d")).fill().alignment(Alignment.CENTER)
             }
@@ -80,20 +90,20 @@ class Graphics : ToolkitApp() {
         //upcolumn
         val lowValueColumn: Column = column(*values.slice(0 until values.size/2).toTypedArray())
         val highValueColumn: Column = column(*values.slice(values.size/2 until values.size).toTypedArray())
-        val valuePanel: Panel = panel("Money remaining", row(lowValueColumn.fill(), highValueColumn.fill()).fill()).rounded()
+        val valuePanel: Panel = panel("Money remaining", row(lowValueColumn.fill(), highValueColumn.fill()).fill()).rounded().borderColor(Color.BLUE)
 
-        val logoPanel: Panel = panel(text("DealOrNoDeal*"))
+        val logoPanel: Panel = panel(column(*(logo.split("\n").map{row:String -> text(row).alignment(Alignment.CENTER)}.toTypedArray())))
         val lowCaseRow: Row = row( *caseIds.slice(0 until caseIds.size/2).toTypedArray())
         val highCaseRow: Row = row(*caseIds.slice(caseIds.size/2 until caseIds.size).toTypedArray())
-        val casePanel: Panel = panel("Cases", column(lowCaseRow.fill(), highCaseRow.fill()).fill()).rounded()
+        val casePanel: Panel = panel("Cases", column(lowCaseRow.fill(), highCaseRow.fill()).fill()).rounded().borderColor(Color.hex("#6457A6"))
 
-        val logoCaseColumn: Column = column(logoPanel.fill(2), casePanel.fill(3))
+        val logoCaseColumn: Column = column(logoPanel.fill(2), casePanel.fill(1))
 
         //downcolumn
         val promptWindow: Panel = panel(text(if (currentEvent.event != EventType.BAD_INPUT) prompts.last() else prompts.last() + System.lineSeparator() + "Invalid input!"))
 
         val inputElem: TextInputElement = TextInputElement(inputState)
-        val inputPanel: Panel = panel(inputElem.placeholder(placeholder).onSubmit {
+        val inputPanel: Panel = panel(inputElem.placeholder(placeholder).focusable().onSubmit {
             inputs.add(inputState.text())
             inputState.clear()
 
@@ -119,7 +129,7 @@ class Graphics : ToolkitApp() {
 
 
         val upRow: Row = row(valuePanel.fill(3), logoCaseColumn.fill(10))
-        val downPanel: Panel = panel("Text Window", promptWindow.borderless(), inputPanel.borderless()).rounded()
+        val downPanel: Panel = panel("Text Window", promptWindow.borderless(), inputPanel.borderless()).rounded().borderColor(Color.hex("af4b5d")) //darker -> "b33951"
 
         val display: Column = column(upRow.fill(2), downPanel.fill(1))
 
@@ -132,8 +142,7 @@ class Graphics : ToolkitApp() {
 
     override fun run(): Unit {
 
-        prompts.add("Select a case: ")
-
+        prompts.add(currentEvent.msg)
 
         super.run()
         return
