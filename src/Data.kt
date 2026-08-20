@@ -35,7 +35,23 @@ data class Case(val id:UInt, val amount: Double, var selected:SelectionStatus): 
 enum class SelectionStatus{
     NOT_SELECTED, SELECTED, SAVED
 }
+
+/**
+ * A data class which models different types of events that can happen within the game, along with a message that can be passed to the user
+ *
+ * Used to communicate between the TUI and the game
+ *
+ * @constructor Makes a new instance using an [EventType] and a message
+ * @property event The [EventType] that `this Events` instance is
+ * @property msg The message to be delivered to the player with `this` Event
+ */
 data class Events(val event:EventType, val msg:String)
+
+/**
+ * The types of [Events] that can occur throughout the game
+ *
+ * @constructor Creates a new EventType
+ */
 enum class EventType{
     CASE_SAVING, CASE_SELECTION, BANKER, BAD_INPUT, GAME_OVER, SWAP
 }
