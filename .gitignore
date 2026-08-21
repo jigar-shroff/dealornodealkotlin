@@ -29,4 +29,4 @@ hs_err_pid*
 replay_pid*
 
 #Testing tamboui file
-test.kt
+src/test.kt
